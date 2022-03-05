@@ -12,22 +12,35 @@
 # output: data.table with 5 columns: token, score for set 1, score for set 2, weighted score for set 1, weighted score for set 2
 #==============================================
 
-# TO DO:
-# ADD BOOTSTRAPPING + PERMUTATION
-# SCALE OR NOT TO SCALE
-# polarityScore(seeds = list(2)...)
-# boostrapping
-# permutation options
-# visualization
-# EXAMPLES
-# INSTANCE?
 
+# require(pbapply)
 #' Compute matrix of transition probabilities
 #'
 #' Computes a matrix of transition probabilities.
 #' see https://nlp.stanford.edu/pubs/hamilton2016inducing.pdf for details.
 #'
-#' @inheritParams parallelDist
+#' @param x (numeric) a symmetric matrix of transition probabilities
+#' @param seeds
+#' @param beta
+#' @param bootstrap (logical) if TRUE, use bootstrapping -- sample from texts with replacement and
+#' re-estimate cosine similarities for each sample. Required to get std. errors.
+#' If `groups` defined, sampling is automatically stratified.
+#' @param num_bootstraps (integer) number of bootstraps to use.
+#' @param prop_seeds (numeric) proportion of seeds to sample
+#' @param as_list (logical) if FALSE all results are combined into a single data.frame
+#' If TRUE, a list of data.frames is returned with one data.frame per target.
+#' @param verbose (logical) progress bar
+#'
+#' @return a `data.frame` or list of data.frames (one for each target)
+#' with the following columns:
+#' \describe{
+#'  \item{`node`}{ (character) rownames of `x`, excluding seed nodes
+#'  \item{`class`}{(character) name of class. If none provided, then
+#'  classes will be labeled `class1`, `class2` etc.}
+#'  \item{`score`}{(numeric) score assigned to node.}
+#'  \item{`std.error`}{(numeric) std. error of score.
+#'  Column is dropped if `bootstrap = FALSE`.}
+#'  }
 #'
 #' @return a V x V matrix of transition probabilities, with V = number of rows in x.
 #'
@@ -36,7 +49,7 @@
 #' @keywords build_transition_matrix
 #' @examples
 #'
-labelProp <- function(x, seeds, metric = "cosine", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, permute = FALSE, num_permutations = 100, num_seeds = 5, verbose = TRUE){
+labelProp <- function(x, seeds, method = 'rw', beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, as_list = FALSE, verbose = TRUE){
 
   # check seeds are in x, if not, report and remove
   orig_seeds <- seeds
@@ -51,39 +64,50 @@ labelProp <- function(x, seeds, metric = "cosine", beta = 0.5, bootstrap = FALSE
 
 
   # check x is a transition matrix
-  if(!(nrow(x) == ncol(x) && all(round(rowSums(x), 0) == 1) && all(diag(x) == 0)))stop('if method = "rw", x must be a symmetric transtition matrix with rows summing to 1 and diagonal set to 0.')
+  if(!(nrow(x) == ncol(x) && all(round(rowSums(x), 0) == 1) && all(diag(x) == 0)))stop('x must be a symmetric transtition matrix with rows summing to 1 and diagonal set to 0.')
 
-  if (bootstrap) {
+  if ( method == "rw" ) {
 
-    result <- replicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta, as_list = FALSE), simplify = FALSE)
-    result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
+    if (bootstrap) {
 
-  } else {
+      if(verbose) result <- pbreplicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta), simplify = FALSE)
+      else result <- replicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta), simplify = FALSE)
+      result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
 
-    result <- compute_rw_score(x = x, seeds = seeds, beta = beta)
+    } else {
 
-  }
+      result <- compute_rw_score(x = x, seeds = seeds, beta = beta)
 
-  if ( permute ){
-
-    # reshape result
-    result <- result %>% group_by(class) %>% group_split()
-
-
-    perm_result <- permute_rw_score(x = x, seeds = seeds, beta = beta, as_list = TRUE)
-
-    for(i in 1:length(result)){
-      temp <- result[[1]]$score > perm_result[[1]]$score
     }
 
+  } else if ( method == "nns" ) {
 
+    if (bootstrap) {
+
+      if(verbose) result <- pbreplicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE))), simplify = FALSE)
+      else result <- replicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE))), simplify = FALSE)
+      result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
+
+    } else {
+
+      result <- compute_nns_score(x = x, seeds = seeds)
+
+    }
+
+  } else stop('method must be either "rw" or "nns"')
+
+  # if as_list
+  if(as_list){
+    result <- result %>% group_by(class) %>% group_split() %>% as.list()
+    if(is.null(names(seeds))) names(result) <- paste0("class", 1:length(seeds))
+    else names(result) <- names(seeds)
   }
 
   # output
   return(result)
 }
 
-compute_rw_score <- function(x, seeds, beta = 0.5, as_list = FALSE){
+compute_rw_score <- function(x, seeds, beta = 0.5){
 
   # anchor vector for seeds
   Y <- lapply(seeds, function(s){
@@ -98,70 +122,26 @@ compute_rw_score <- function(x, seeds, beta = 0.5, as_list = FALSE){
   else names(score) <- names(seeds)
 
   # result
-  result <- cbind("node" = rownames(x), score) %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score")
-
-  # if as_list
-  if(as_list) result <- result %>% group_by(class) %>% group_split()
+  result <- cbind("node" = rownames(x), score) %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score") %>% filter(node!=unlist(seeds))
 
   # out
   return(result)
 }
 
-permute_rw_score <- function(x, seeds, beta = 0.5, as_list = FALSE){
+compute_nns_score <- function(x, seeds, metric){
 
-  # anchor vector for seeds
-  Y <- lapply(seeds, function(s){
-    sample_s <- sample(rownames(x), length(s), replace = FALSE)
-    seed_anchor <- matrix(0, nrow = nrow(x), ncol = 1)
-    seed_anchor[which(colnames(x) %in% sample_s)] <- 1
-    return(seed_anchor)
-  }) %>% do.call(cbind, .)
+  # take column average of seed embeddings
+  seeds_vec = lapply(seeds, function(s) matrix(Matrix::colMeans(matrix(x[s,], nrow = length(s), ncol = ncol(x))), nrow = 1))
 
-  # closed-form solution
-  score <- solve(diag(nrow(x)) - beta*x)%*%Y %>% data.frame(., row.names = NULL)
-  if(is.null(names(seeds))) names(score) <- paste0("class", 1:length(seeds))
-  else names(score) <- names(seeds)
+  # compute similarity
+  result <- lapply(1:length(seeds_vec), function(s){
+    sim_vec <- text2vec::sim2(x = seeds_vec[[s]], y = x, method = "cosine", norm = "l2")[1,]
+    return(data.frame(node = names(sim_vec), class = ifelse(!is.null(names(seeds_vec)), names(seeds_vec)[[s]], paste0("class", s)), score = unname(sim_vec)))
+    })
 
   # result
-  result <- cbind("node" = rownames(x), score) %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score")
-
-  # if as_list
-  if(as_list) result <- result %>% group_by(class) %>% group_split()
+  result <- bind_rows(result) %>% filter(node!=unlist(seeds))
 
   # out
   return(result)
 }
-
-
-
-
-
-
-
-# sample seeds
-init_seeds <- as.list(sample(rownames(x), num_permutations, replace = FALSE))
-
-# find neighborhoods
-sample_seeds <- compute_rw_score(x, seeds = init_seeds, beta = beta) %>%
-  dplyr::group_by(class) %>%
-  dplyr::slice_max(order_by = score, n = num_seeds) %>%
-  select(node, class) %>%
-  group_by(class) %>% group_split() %>%
-  lapply(., function(i) i %>% pull(node))
-
-# permuted scores
-perm_score <- compute_rw_score(x, seeds = sample_seeds, beta = beta) %>%
-  tidyr::pivot_wider(names_from = "class", values_from = "score") %>% select(-node) %>% as.matrix()
-
-# add p.value
-result <- lapply(result, function(i){
-  p.value <- sweep(perm_score, 1, i$score, FUN = "-")
-  p.value <- p.value < 0
-  i$p.value <- 1 - rowSums(p.value)/ncol(perm_score)
-  return(i)}) %>% bind_rows()
-
-}
-
-
-
-

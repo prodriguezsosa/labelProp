@@ -13,10 +13,10 @@
 #' @keywords build_transition_matrix
 #' @examples
 #'
-build_transition_matrix <- function(x, method = "cosine", threads = 4L){
+build_transition_matrix <- function(x, metric = "cosine", threads = 4L){
 
   # compute distance vector
-  dist_vec <- parallelDist::parDist(x = x, method = method, diag = FALSE, upper = FALSE, threads = threads)
+  dist_vec <- parallelDist::parDist(x = x, method = metric, diag = FALSE, upper = FALSE, threads = threads)
 
   # create similarity (full) matrix
   sim_mat <- matrix(0, nrow = attr(dist_vec, "Size"), ncol = attr(dist_vec, "Size"))
