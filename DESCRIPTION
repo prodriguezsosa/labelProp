@@ -1,13 +1,28 @@
 Package: labelProp
-Type: Package
-Title: What the Package Does (Title Case)
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Label propagation algorithm for semi-supervised learning.
+Description: Implementation of Zhou et al. (2003)<https://proceedings.neurips.cc/paper/2003/file/87682805257e619d49b8e0dfdc14affa-Paper.pdf>.
+Authors@R: c(
+    person("Pedro L.", "Rodriguez", email = "pedro.rodriguez@Vanderbilt.Edu", role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0003-4762-4550")),
+    person("Christopher", "Barrie", email = "christopher.barrie@ed.ac.uk", role = "aut", comment = c(ORCID = "0000-0002-9156-990X")),
+    person("Arthur", "Spirling", email = "as9934@nyu.edu", role = "aut", comment = c(ORCID = "0000-0001-9959-1805"))
+    )
+License: GPL-3
+Depends:
+    R (>= 3.6.0)
+Imports:
+    dplyr,
+    parallelDist,
+    pbapply
+URL: https://github.com/prodriguezsosa/labelProp
+BugReports: https://github.com/prodriguezsosa/labelProp/issues
+Maintainer: Pedro L. Rodriguez <pedro.rodriguez@Vanderbilt.Edu>
 Encoding: UTF-8
 LazyData: true
-Depends: 
-    R (>= 2.10)
+VignetteBuilder: knitr
+Language: en-US
+RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
+Suggests: 
+    knitr,
+    rmarkdown

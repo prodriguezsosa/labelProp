@@ -1,8 +1,4 @@
-# require(parallelDist) # DELETE THIS
-#' Compute matrix of transition probabilities
-#'
 #' Computes a matrix of transition probabilities.
-#' see https://nlp.stanford.edu/pubs/hamilton2016inducing.pdf for details.
 #'
 #' @inheritParams parallelDist
 #'
