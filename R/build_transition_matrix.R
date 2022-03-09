@@ -15,10 +15,7 @@ build_transition_matrix <- function(x, metric = "cosine", threads = 4L){
   dist_vec <- parallelDist::parDist(x = x, method = metric, diag = FALSE, upper = FALSE, threads = threads)
 
   # create similarity (full) matrix
-  sim_mat <- matrix(0, nrow = attr(dist_vec, "Size"), ncol = attr(dist_vec, "Size"))
-  sim_mat[upper.tri(sim_mat, diag = FALSE)] <- 1 - dist_vec
-  sim_mat[lower.tri(sim_mat, diag = FALSE)] <- t(sim_mat[upper.tri(sim_mat, diag = FALSE)])
-  sim_mat[sim_mat > 1] <- 1 # fix rounding errors
+  sim_mat <- as.matrix(1 - dist_vec)
   sim_mat <- acos(-sim_mat)/pi
   diag(sim_mat) <- 0
 

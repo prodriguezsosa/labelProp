@@ -34,7 +34,19 @@
 #' @rdname labelProp
 #' @keywords labelProp
 #' @examples
-labelProp <- function(x, seeds, method = "rw", metric = "cosine", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = TRUE, as_list = FALSE, verbose = TRUE){
+labelProp <- function(x, seeds, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
+
+
+  # check object type
+  if(!is.list(seeds) & !is.character(seeds)) warning('"seeds" must be a character vector or list of character vectors. \n Each characeter vector is understood to represent a single class.', call. = FALSE)
+  if(is.character(seeds)) seeds <- list(seeds)
+
+  # softmax requires two classes
+  if(softmax){
+    if(!is.list(seeds) || length(seeds) < 2){
+      softmax <- FALSE
+      warning('to use softmax you must provide at least 2 classes of seeds. Proceeding without softmax.', call. = FALSE)
+    }}
 
   # check seeds are in x, if not, report and remove
   orig_seeds <- seeds
@@ -60,31 +72,31 @@ labelProp <- function(x, seeds, method = "rw", metric = "cosine", beta = 0.5, bo
 
     } else {
 
-      result <- compute_rw_score(x = x, seeds = seeds, beta = beta)
+      result <- compute_rw_score(x = x, seeds = seeds, beta = beta, softmax = softmax)
 
     }
 
   } else if ( method == "nns" ) {
 
     # check x is a transition matrix
-    if((nrow(x) == ncol(x) && all(round(rowSums(x), 0) == 1) && all(diag(x) == 0)))warning('this looks like a transition matrix, are you sure you want to set method = "nns"?')
+    if((nrow(x) == ncol(x) && all(round(rowSums(x), 0) == 1) && all(diag(x) == 0)))warning('this looks like a transition matrix, are you sure you want to set method = "nns"?', call. = FALSE)
 
     if (bootstrap) {
 
-      if(verbose) result <- pbreplicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), metric = metric, softmax = softmax), simplify = FALSE)
-      else result <- replicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), metric = metric, softmax = softmax), simplify = FALSE)
+      if(verbose) result <- pbreplicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), softmax = softmax), simplify = FALSE)
+      else result <- replicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), softmax = softmax), simplify = FALSE)
       result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
 
     } else {
 
-      result <- compute_nns_score(x = x, seeds = seeds, metric = metric, softmax = softmax)
+      result <- compute_nns_score(x = x, seeds = seeds, softmax = softmax)
 
     }
 
   } else stop('method must be either "rw" or "nns"')
 
   # remove seeds
-  result <- result %>% filter(!(node %in% unname(unlist(seeds))))
+  #result <- result %>% filter(!(node %in% unname(unlist(seeds))))
 
   # if as_list
   if(as_list){
@@ -133,29 +145,35 @@ compute_rw_score <- function(x, seeds, beta = 0.5, softmax = TRUE){
 
   # result
   result <- cbind("node" = rownames(x), score)
-  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score")
+  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score") %>% filter(!(node %in% unlist(seeds)))
+
+  # scale
+  result <- result %>% group_by(class) %>% mutate(score = scale(score)[,1]) %>% ungroup()
 
   # out
   return(result)
 }
 
 # sub-functions
-compute_nns_score <- function(x, seeds, metric = 'cosine', softmax = TRUE){
+compute_nns_score <- function(x, seeds, softmax = TRUE){
 
   # take column average of seed embeddings
   seeds_vec = lapply(seeds, function(s) matrix(Matrix::colMeans(matrix(x[s,], nrow = length(s), ncol = ncol(x))), nrow = 1))
 
   # compute similarity
   result <- lapply(1:length(seeds_vec), function(s){
-    if(metric == "cosine") sim_vec <- text2vec::sim2(x = seeds_vec[[s]], y = x, method = "cosine", norm = "l2")[1,]
-    else sim_vec <- text2vec::sim2(x = seeds_vec[[s]], y = x, method = "cosine", norm = "none")[1,]
+    sim_vec <- text2vec::sim2(x = seeds_vec[[s]], y = x, method = "cosine", norm = "l2")[1,]
     return(data.frame(node = names(sim_vec), class = ifelse(!is.null(names(seeds_vec)), names(seeds_vec)[[s]], paste0("class", s)), score = unname(sim_vec)))
     })
 
   # result
   result <- bind_rows(result)
-  # shift cosine similarity scale from -1 to 1 to to 0 - 2
+
+  # softmax: shift cosine similarity scale from -1 to 1 to to 0 - 2
   if(softmax) result <- result %>% mutate(score = score + 1) %>% group_by(node) %>% mutate(score = score/sum(score)) %>% ungroup()
+
+  # scale
+  result <- result %>% filter(!(node %in% unlist(seeds))) %>% group_by(class) %>% mutate(score = scale(score)[,1]) %>% ungroup()
 
   # out
   return(result)
