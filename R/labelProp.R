@@ -7,6 +7,7 @@
 #' @param seeds (list) a list of character vectors defining the classes of interest.
 #' If named, then `names(seeds)` will be used to define classes,
 #' otherwise classes will be labeled `class1`, `class2` etc.
+#' @param N (integer) number of (top N) scored nodes to return
 #' @param method (character) either `nns` or `rw`. If `nns`, then values will be computed
 #' using cosine similarity, if not values are computed using spreading activation.
 #' @param beta (numeric) in (0,1), specifies the extent to which the algorithm favors local (similar labels for neighbors)
@@ -15,6 +16,9 @@
 #' of seeds and re-run algorithm. Required to get std. errors.
 #' @param num_bootstraps (integer) number of bootstraps to use.
 #' @param prop_seeds (numeric) proportion of seeds to sample when bootstrapping.
+#' @param softmax (logical) if TRUE, the exponential of a node's score for a given class
+#' is normalized by the sum of the exponential of scores across all classes.
+#' Option is only available when two or more classes are specified.
 #' @param as_list (logical) if FALSE all results are combined into a single data.frame
 #' If TRUE, a list of data.frames is returned with one data.frame per class.
 #' @param verbose (logical) if TRUE show progress bar.
@@ -34,6 +38,29 @@
 #' @rdname labelProp
 #' @keywords labelProp
 #' @examples
+#'
+#'
+#' # to use the random-walkd algorithm we first build a transition matrix
+#' transition_matrix <- build_transition_matrix(x = anes2016_glove, threads = 6L)
+#'
+#' # define seeds (labeled nodes),
+#' # if list is unlabeled, "class1", "class2" etc. will be used as labels
+#' seeds = list("immigration" = c("immigration", "immigrants", "immigrant"),
+#' "economy" = c("jobs", "unemployment", "wages"))
+#'
+#' # propagate label using rw
+#' rw_labels <- labelProp(x = transition_matrix, seeds = seeds,
+#' method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+#'
+#' # propagate label using nns,
+#' # notice the main input, x, are the vector representations
+#' nns_labels <- labelProp(x = anes2016_glove, seeds = seeds,
+#' method = "nns", N = 10, as_list = TRUE)
+#'
+#' # check output for economy
+#' rw_labels[["economy"]]
+#' nns_labels[["economy"]]
+#'
 labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
 
   # check object type
@@ -65,7 +92,7 @@ labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = F
 
     if (bootstrap) {
 
-      if(verbose) result <- pbreplicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta, softmax = TRUE), simplify = FALSE)
+      if(verbose) result <- pbapply::pbreplicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta, softmax = TRUE), simplify = FALSE)
       else result <- replicate(num_bootstraps, compute_rw_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), beta = beta, softmax = TRUE), simplify = FALSE)
       result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
 
@@ -95,11 +122,11 @@ labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = F
   } else stop('method must be either "rw" or "nns"')
 
   # limit output to top N
-  if(is.numeric(N) || is.integer(N)) result <- result %>% group_by(class) %>% top_n(N, wt = score) %>% ungroup %>% arrange(-score)
+  if(is.numeric(N) || is.integer(N)) result <- result %>% dplyr::group_by(class) %>% dplyr::top_n(N, wt = score) %>% dplyr::ungroup() %>% dplyr::arrange(-score)
 
   # if as_list
   if(as_list){
-    result <- result %>% group_by(class) %>% group_split() %>% as.list()
+    result <- result %>% dplyr::group_by(class) %>% dplyr::group_split() %>% as.list()
     if(is.null(names(seeds))) names(result) <- paste0("class", 1:length(seeds))
     else names(result) <- rev(names(seeds))
   }
@@ -144,10 +171,10 @@ compute_rw_score <- function(x, seeds, beta = 0.5, softmax = TRUE){
 
   # result
   result <- cbind("node" = rownames(x), score)
-  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score") %>% filter(!(node %in% unlist(seeds)))
+  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score") %>% dplyr::filter(!(node %in% unlist(seeds)))
 
   # scale
-  result <- result %>% group_by(class) %>% mutate(score = scale(score)[,1]) %>% ungroup()
+  result <- result %>% dplyr::group_by(class) %>% dplyr::mutate(score = scale(score)[,1]) %>% dplyr::ungroup()
 
   # out
   return(result)
@@ -166,13 +193,13 @@ compute_nns_score <- function(x, seeds, softmax = TRUE){
     })
 
   # result
-  result <- bind_rows(result)
+  result <- dplyr::bind_rows(result)
 
   # softmax: shift cosine similarity scale from -1 to 1 to to 0 - 2
-  if(softmax) result <- result %>% mutate(score = score + 1) %>% group_by(node) %>% mutate(score = score/sum(score)) %>% ungroup()
+  if(softmax) result <- result %>% dplyr::mutate(score = score + 1) %>% dplyr::group_by(node) %>% dplyr::mutate(score = score/sum(score)) %>% dplyr::ungroup()
 
   # scale
-  result <- result %>% filter(!(node %in% unlist(seeds))) %>% group_by(class) %>% mutate(score = scale(score)[,1]) %>% ungroup()
+  result <- result %>% dplyr::filter(!(node %in% unlist(seeds))) %>% dplyr::group_by(class) %>% dplyr::mutate(score = scale(score)[,1]) %>% dplyr::ungroup()
 
   # out
   return(result)

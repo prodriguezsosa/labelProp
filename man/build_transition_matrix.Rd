@@ -14,5 +14,7 @@ Computes a matrix of transition probabilities.
 }
 \examples{
 
+transition_matrix <- build_transition_matrix(anes2016_glove, threads = 2)
+
 }
 \keyword{build_transition_matrix}

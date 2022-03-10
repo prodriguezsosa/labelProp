@@ -1,6 +1,6 @@
 #' Computes a matrix of transition probabilities.
 #'
-#' @inheritParams parallelDist
+#' @inheritParams parDist
 #'
 #' @return a V x V matrix of transition probabilities, with V = number of rows in x.
 #'
@@ -9,10 +9,12 @@
 #' @keywords build_transition_matrix
 #' @examples
 #'
-build_transition_matrix <- function(x, metric = "cosine", threads = 4L){
+#' transition_matrix <- build_transition_matrix(anes2016_glove, threads = 2)
+#'
+build_transition_matrix <- function(x, method = "cosine", threads = 4L){
 
   # compute distance vector
-  dist_vec <- parallelDist::parDist(x = x, method = metric, diag = FALSE, upper = FALSE, threads = threads)
+  dist_vec <- parallelDist::parDist(x = x, method = method, diag = FALSE, upper = FALSE, threads = threads)
 
   # create similarity (full) matrix
   sim_mat <- as.matrix(1 - dist_vec)

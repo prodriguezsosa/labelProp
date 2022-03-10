@@ -13,7 +13,10 @@ Depends:
 Imports:
     dplyr,
     parallelDist,
-    pbapply
+    pbapply,
+    text2vec,
+    tidyr,
+    Matrix
 URL: https://github.com/prodriguezsosa/labelProp
 BugReports: https://github.com/prodriguezsosa/labelProp/issues
 Maintainer: Pedro L. Rodriguez <pedro.rodriguez@Vanderbilt.Edu>

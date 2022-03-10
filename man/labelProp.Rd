@@ -7,11 +7,13 @@
 labelProp(
   x,
   seeds,
+  N = 10,
   method = "rw",
   beta = 0.5,
   bootstrap = FALSE,
   num_bootstraps = 50,
   prop_seeds = 0.5,
+  softmax = FALSE,
   as_list = FALSE,
   verbose = TRUE
 )
@@ -27,7 +29,7 @@ otherwise classes will be labeled \code{class1}, \code{class2} etc.}
 \item{method}{(character) either \code{nns} or \code{rw}. If \code{nns}, then values will be computed
 using cosine similarity, if not values are computed using spreading activation.}
 
-\item{beta}{specifies the extent to which the algorithm favors local (similar labels for neighbors)
+\item{beta}{(numeric) in (0,1), specifies the extent to which the algorithm favors local (similar labels for neighbors)
 vs. global (correct labels on seed words) consistency.}
 
 \item{bootstrap}{(logical) if TRUE, use bootstrapping -- sample a proportion (defined by \code{prop_seeds})
@@ -36,6 +38,10 @@ of seeds and re-run algorithm. Required to get std. errors.}
 \item{num_bootstraps}{(integer) number of bootstraps to use.}
 
 \item{prop_seeds}{(numeric) proportion of seeds to sample when bootstrapping.}
+
+\item{softmax}{(logical) if TRUE, the exponential of a node's score for a given class
+is normalized by the sum of the exponential of scores across all classes.
+Option is only available when two or more classes are specified.}
 
 \item{as_list}{(logical) if FALSE all results are combined into a single data.frame
 If TRUE, a list of data.frames is returned with one data.frame per class.}
@@ -56,5 +62,30 @@ Column is dropped if \code{bootstrap = FALSE}.}
 }
 \description{
 See: https://proceedings.neurips.cc/paper/2003/file/87682805257e619d49b8e0dfdc14affa-Paper.pdf
+}
+\examples{
+
+
+# to use the random-walkd algorithm we first build a transition matrix
+transition_matrix <- build_transition_matrix(x = anes2016_glove, threads = 6L)
+
+# define seeds (labeled nodes),
+# if list is unlabeled, "class1", "class2" etc. will be used as labels
+seeds = list("immigration" = c("immigration", "immigrants", "immigrant"),
+"economy" = c("jobs", "unemployment", "wages"))
+
+# propagate label using rw
+rw_labels <- labelProp(x = transition_matrix, seeds = seeds,
+method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+
+# propagate label using nns,
+# notice the main input, x, are the vector representations
+nns_labels <- labelProp(x = anes2016_glove, seeds = seeds,
+method = "nns", N = 10, as_list = TRUE)
+
+# check output for economy
+rw_labels[["economy"]]
+nns_labels[["economy"]]
+
 }
 \keyword{labelProp}
