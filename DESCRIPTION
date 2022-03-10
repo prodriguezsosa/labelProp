@@ -7,7 +7,7 @@ Authors@R: c(
     person("Christopher", "Barrie", email = "christopher.barrie@ed.ac.uk", role = "aut", comment = c(ORCID = "0000-0002-9156-990X")),
     person("Arthur", "Spirling", email = "as9934@nyu.edu", role = "aut", comment = c(ORCID = "0000-0001-9959-1805"))
     )
-License: GPL-3
+License: GPL-3 + file LICENSE
 Depends:
     R (>= 3.6.0)
 Imports:
