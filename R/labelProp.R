@@ -34,18 +34,17 @@
 #' @rdname labelProp
 #' @keywords labelProp
 #' @examples
-labelProp <- function(x, seeds, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
-
+labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
 
   # check object type
-  if(!is.list(seeds) & !is.character(seeds)) warning('"seeds" must be a character vector or list of character vectors. \n Each characeter vector is understood to represent a single class.', call. = FALSE)
+  if(!is.list(seeds) & !is.character(seeds)) warning('"seeds" must be a character vector or list of character vectors. \n Each characeter vector is understood to represent a single class. \n', call. = FALSE)
   if(is.character(seeds)) seeds <- list(seeds)
 
   # softmax requires two classes
   if(softmax){
-    if(!is.list(seeds) || length(seeds) < 2){
+    if(length(seeds) < 2){
       softmax <- FALSE
-      warning('to use softmax you must provide at least 2 classes of seeds. Proceeding without softmax.', call. = FALSE)
+      warning('to use softmax you must provide at least 2 classes of seeds. Proceeding without softmax. \n', call. = FALSE)
     }}
 
   # check seeds are in x, if not, report and remove
@@ -53,11 +52,11 @@ labelProp <- function(x, seeds, method = "rw", beta = 0.5, bootstrap = FALSE, nu
   seeds <- lapply(seeds, function(s) s[s %in% rownames(x)])
 
   # if no seeds are present in x, stop
-  if( length(seeds)==0 ) stop("none of the seeds are present in the x")
+  if( length(seeds)==0 ) stop("none of the seeds are present in the x \n")
 
   # report seeds not in x
   not_in_x <- setdiff(unlist(orig_seeds), unlist(seeds))
-  if( length(not_in_x)!=0  ) cat("seeds not in x:", paste(not_in_x, collapse = ', '))
+  if( length(not_in_x)!=0  ) cat("seeds not in x:", paste(not_in_x, collapse = ', '), "\n")
 
   if ( method == "rw" ) {
 
@@ -95,14 +94,14 @@ labelProp <- function(x, seeds, method = "rw", beta = 0.5, bootstrap = FALSE, nu
 
   } else stop('method must be either "rw" or "nns"')
 
-  # remove seeds
-  #result <- result %>% filter(!(node %in% unname(unlist(seeds))))
+  # limit output to top N
+  if(is.numeric(N) || is.integer(N)) result <- result %>% group_by(class) %>% top_n(N, wt = score) %>% ungroup %>% arrange(-score)
 
   # if as_list
   if(as_list){
     result <- result %>% group_by(class) %>% group_split() %>% as.list()
     if(is.null(names(seeds))) names(result) <- paste0("class", 1:length(seeds))
-    else names(result) <- names(seeds)
+    else names(result) <- rev(names(seeds))
   }
 
   # output

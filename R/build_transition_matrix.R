@@ -16,6 +16,8 @@ build_transition_matrix <- function(x, metric = "cosine", threads = 4L){
 
   # create similarity (full) matrix
   sim_mat <- as.matrix(1 - dist_vec)
+  sim_mat[sim_mat > 1] <- 1
+  sim_mat[sim_mat < -1] <- -1
   sim_mat <- acos(-sim_mat)/pi
   diag(sim_mat) <- 0
 
