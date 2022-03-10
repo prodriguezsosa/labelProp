@@ -8,5 +8,5 @@
 
 # Quick Start Guides
 
-Check out this [Quick Start Guide](https://github.com/prodriguezsosa/labelProp/blob/master/vignettes/quickstart.md) to get going with `labelProp`.
+Check out this [Quick Start Guide](https://github.com/prodriguezsosa/labelProp/blob/main/vignettes/quickstart.md) to get going with `labelProp`.
 
