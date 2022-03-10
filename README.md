@@ -1,4 +1,4 @@
-# Stop: 
+# Stop
 
 **labelProp** is under construction, which means it may change significantly in the coming weeks. That said, feel free to make suggestions (use Issues), happy to add co-authors/contributors.
 
