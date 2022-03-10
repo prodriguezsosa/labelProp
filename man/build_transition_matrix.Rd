@@ -4,7 +4,17 @@
 \alias{build_transition_matrix}
 \title{Computes a matrix of transition probabilities.}
 \usage{
-build_transition_matrix(x, metric = "cosine", threads = 4L)
+build_transition_matrix(x, method = "cosine", threads = 4L)
+}
+\arguments{
+\item{x}{a numeric matrix (each row is one series) or list of numeric matrices for
+multidimensional series (each matrix is one series, a row is a dimension of a series)}
+
+\item{method}{the distance measure to be used.
+A list of all available distance methods can be found in \code{?parallelDist::parDist}}
+
+\item{threads}{number of cpu threads for calculating a distance matrix.
+Default is 4.}
 }
 \value{
 a V x V matrix of transition probabilities, with V = number of rows in x.

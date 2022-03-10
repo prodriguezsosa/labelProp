@@ -26,6 +26,8 @@ if \code{method = nns}, then \code{x} is a matrix of vector representations.}
 If named, then \code{names(seeds)} will be used to define classes,
 otherwise classes will be labeled \code{class1}, \code{class2} etc.}
 
+\item{N}{(integer) number of (top N) scored nodes to return}
+
 \item{method}{(character) either \code{nns} or \code{rw}. If \code{nns}, then values will be computed
 using cosine similarity, if not values are computed using spreading activation.}
 

@@ -1,6 +1,11 @@
 #' Computes a matrix of transition probabilities.
 #'
-#' @inheritParams parDist
+#' @param x a numeric matrix (each row is one series) or list of numeric matrices for
+#' multidimensional series (each matrix is one series, a row is a dimension of a series)
+#' @param method the distance measure to be used.
+#' A list of all available distance methods can be found in `?parallelDist::parDist`
+#' @param threads number of cpu threads for calculating a distance matrix.
+#' Default is 4.
 #'
 #' @return a V x V matrix of transition probabilities, with V = number of rows in x.
 #'

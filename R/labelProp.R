@@ -109,7 +109,7 @@ labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = F
 
     if (bootstrap) {
 
-      if(verbose) result <- pbreplicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), softmax = softmax), simplify = FALSE)
+      if(verbose) result <- pbapply::pbreplicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), softmax = softmax), simplify = FALSE)
       else result <- replicate(num_bootstraps, compute_nns_score(x = x, seeds = lapply(seeds, function(s) sample(s, size = ceiling(prop_seeds*length(s)), replace = FALSE)), softmax = softmax), simplify = FALSE)
       result <- dplyr::bind_rows(result) %>% dplyr::group_by(class, node) %>% dplyr::summarize(std.error = sd(score), score = mean(score), .groups = "drop_last") %>% dplyr::select(node, class, score, std.error) %>% dplyr::ungroup()
 
