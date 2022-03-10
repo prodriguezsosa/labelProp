@@ -37,12 +37,13 @@ determine the labels of the remaining set of nodes? Currently
     on the probability of a random walk from the seed set hitting that
     node. This algorithm is adapted from [Zhou et al.
     (2004)](https://proceedings.neurips.cc/paper/2003/file/87682805257e619d49b8e0dfdc14affa-Paper.pdf)
-    and [Hamilton et al.](2016). This algorithm requires a transition
-    matrix be estimated from the vector representations for the full set
-    of nodes, labeled and unlabeled. For very large node sets
-    (\(10^6\)), this can be computationally intensive in which case
-    users should use the `nns` algorithm. The advantage of `rw` over
-    `nns` is that…
+    and [Hamilton et al.
+    (2016)](https://nlp.stanford.edu/pubs/hamilton2016inducing.pdf).
+    This algorithm requires a transition matrix be estimated from the
+    vector representations for the full set of nodes, labeled and
+    unlabeled. For very large node sets (\(10^6\)), this can be
+    computationally intensive in which case users should use the `nns`
+    algorithm. The advantage of `rw` over `nns` is that…
 
 # Data
 
@@ -76,6 +77,7 @@ wrapper around `parallelDist`, allowing for parallelization. `beta` is
 the only other function parameter in `labelProp` specific to the `rw`
 algorithm, it specifies the extent to which the algorithm favors local
 (similar labels for neighbors) vs. global (correct labels on seed nodes)
+consistency – lower (higher) values emphasize local (global)
 consistency. In practice we’ve found results to be fairly robust to the
 specification of `beta`. To use the `nns` algorithm, users must provide
 a set of vector representations, one for each node. The user must then

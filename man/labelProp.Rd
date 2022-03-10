@@ -32,7 +32,7 @@ otherwise classes will be labeled \code{class1}, \code{class2} etc.}
 using cosine similarity, if not values are computed using spreading activation.}
 
 \item{beta}{(numeric) in (0,1), specifies the extent to which the algorithm favors local (similar labels for neighbors)
-vs. global (correct labels on seed words) consistency.}
+vs. global (correct labels on seed words) consistency. Lower (higher) values emphasize local (global) consistency.}
 
 \item{bootstrap}{(logical) if TRUE, use bootstrapping -- sample a proportion (defined by \code{prop_seeds})
 of seeds and re-run algorithm. Required to get std. errors.}

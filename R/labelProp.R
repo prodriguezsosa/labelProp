@@ -11,7 +11,7 @@
 #' @param method (character) either `nns` or `rw`. If `nns`, then values will be computed
 #' using cosine similarity, if not values are computed using spreading activation.
 #' @param beta (numeric) in (0,1), specifies the extent to which the algorithm favors local (similar labels for neighbors)
-#' vs. global (correct labels on seed words) consistency.
+#' vs. global (correct labels on seed words) consistency. Lower (higher) values emphasize local (global) consistency.
 #' @param bootstrap (logical) if TRUE, use bootstrapping -- sample a proportion (defined by `prop_seeds`)
 #' of seeds and re-run algorithm. Required to get std. errors.
 #' @param num_bootstraps (integer) number of bootstraps to use.
