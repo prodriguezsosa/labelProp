@@ -3,7 +3,8 @@ Version: 0.1.0
 Title: Label propagation algorithm for semi-supervised learning
 Description: Implementation of Zhou et al. (2003)<https://proceedings.neurips.cc/paper/2003/file/87682805257e619d49b8e0dfdc14affa-Paper.pdf>.
 Authors@R: c(
-    person("Pedro L.", "Rodriguez", email = "pedro.rodriguez@Vanderbilt.Edu", role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0003-4762-4550"))
+    person("Pedro L.", "Rodriguez", email = "pedro.rodriguez@Vanderbilt.Edu", role = c("aut", "cre", "cph"), comment = c(ORCID = "0000-0003-4762-4550")),
+    person("Christopher", "Barrie", email = "christopher.barrie@ed.ac.uk", role = "aut", comment = c(ORCID = "0000-0002-9156-990X"))
     )
 License: GPL-3 + file LICENSE
 Depends:
