@@ -1,5 +1,5 @@
 Package: labelProp
-Version: 0.1.0
+Version: 0.1.1
 Title: Label propagation algorithm for semi-supervised learning
 Description: Implementation of Zhou et al. (2003)<https://proceedings.neurips.cc/paper/2003/file/87682805257e619d49b8e0dfdc14affa-Paper.pdf>.
 Authors@R: c(
