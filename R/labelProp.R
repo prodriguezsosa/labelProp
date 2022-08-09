@@ -79,7 +79,7 @@ labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = F
   seeds <- lapply(seeds, function(s) s[s %in% rownames(x)])
 
   # if no seeds are present in x, stop
-  if( length(unlist(seeds))==0 ) stop("none of the seeds are present in the x \n")
+  if( length(unlist(seeds))==0 ) stop("none of the seeds are present in x \n")
 
   # report seeds not in x
   not_in_x <- setdiff(unlist(orig_seeds), unlist(seeds))
