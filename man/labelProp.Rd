@@ -11,7 +11,7 @@ labelProp(
   method = "rw",
   beta = 0.5,
   bootstrap = FALSE,
-  num_bootstraps = 50,
+  num_bootstraps = 100,
   prop_seeds = 0.5,
   softmax = FALSE,
   as_list = FALSE,

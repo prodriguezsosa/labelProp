@@ -61,7 +61,7 @@
 #' rw_labels[["economy"]]
 #' nns_labels[["economy"]]
 #'
-labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 50, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
+labelProp <- function(x, seeds, N = 10, method = "rw", beta = 0.5, bootstrap = FALSE, num_bootstraps = 100, prop_seeds = 0.5, softmax = FALSE, as_list = FALSE, verbose = TRUE){
 
   # check object type
   if(!is.list(seeds) & !is.character(seeds)) warning('"seeds" must be a character vector or list of character vectors. \n Each characeter vector is understood to represent a single class. \n', call. = FALSE)
@@ -171,10 +171,7 @@ compute_rw_score <- function(x, seeds, beta = 0.5, softmax = TRUE){
 
   # result
   result <- cbind("node" = rownames(x), score)
-  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score") %>% dplyr::filter(!(node %in% unlist(seeds)))
-
-  # scale
-  result <- result %>% dplyr::group_by(class) %>% dplyr::mutate(score = scale(score)[,1]) %>% dplyr::ungroup()
+  result <- result %>% tidyr::pivot_longer(cols = colnames(score), names_to = "class", values_to = "score")
 
   # out
   return(result)
@@ -197,9 +194,6 @@ compute_nns_score <- function(x, seeds, softmax = TRUE){
 
   # softmax: shift cosine similarity scale from -1 to 1 to to 0 - 2
   if(softmax) result <- result %>% dplyr::mutate(score = score + 1) %>% dplyr::group_by(node) %>% dplyr::mutate(score = score/sum(score)) %>% dplyr::ungroup()
-
-  # scale
-  result <- result %>% dplyr::filter(!(node %in% unlist(seeds))) %>% dplyr::group_by(class) %>% dplyr::mutate(score = scale(score)[,1]) %>% dplyr::ungroup()
 
   # out
   return(result)
