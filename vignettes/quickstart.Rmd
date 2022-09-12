@@ -51,7 +51,7 @@ Dictionary-based approaches are popular in the social sciences. They are transpa
 
 To use the `rw` algorithm we first build a transition matrix using our set of pre-trained vector-representations as input. This can be done using the `labelProp::build_transition_matrix()` function which is a wrapper around `parallelDist`, allowing for parallelization. `beta` is the only other function parameter in `labelProp` specific to the `rw` algorithm, it specifies the extent to which the algorithm favors local (similar labels for neighbors) vs. global (correct labels on seed nodes) consistency -- lower (higher) values emphasize local (global) consistency. In practice we've found results to be fairly robust to the specification of `beta`. To use the `nns` algorithm, users must provide a set of vector representations, one for each node. The user must then provide a set of labeled nodes --`seeds`-- in the form of a named list.
 
-Users can futher choose to compute standard errors for the assigned scores using a bootstrapping procedure --the algorithm is replicated `num_bootstrap` times using a sample proportion --`prop_seeds`-- of the seeds. The users can also choose to normalize scores by the sum of the scores across the various classes -- this is useful if for examle we are building a sentiment dictionary and are looking to rank words according to their polarity score. This can be done using the `softmax` parameter. Finally, the user can specify whether to limit the number of nodes that are output. If `N` is defined, then the top `N` scoring nodes for each class are output, otherwise the output will include the full set of nodes with their respective scores. Note, the unlabeled nodes with the highest scores will likely be different depending on the algorithm. It will often make sense to use both -- for example when it is combined human selection of words.
+Users can futher choose to compute standard errors for the assigned scores using a bootstrapping procedure --the algorithm is replicated `num_bootstrap` times using a sample proportion --`prop_seeds`-- of the seeds. A permutation-based approach is used to compute an empirical p-value. If `permute`, then seeds are sampled at random `num_permutations` times, and an empirical null is computed with which to compare the estimated score of each node. Users can also choose to normalize scores by the sum of the scores across the various classes -- this is useful if for examle we are building a sentiment dictionary and are looking to rank words according to their polarity score. This can be done using the `softmax` parameter. Note, the unlabeled nodes with the highest scores will likely be different depending on the algorithm. It will often make sense to use both -- for example when combined with human selection of words.
 
 ```{r, message = FALSE}
 
@@ -62,18 +62,18 @@ transition_matrix <- build_transition_matrix(x = anes2016_glove, threads = 6L)
 seeds = list("immigration" = c("immigration", "immigrants", "immigrant"), "economy" = c("jobs", "unemployment", "wages"))
 
 # propagate label using rw
-rw_labels <- labelProp(x = transition_matrix, seeds = seeds, method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+rw_labels <- labelProp(x = transition_matrix, seeds = seeds, method = "rw", beta = 0.5)
 
 # propagate label using nns, notice the main input, x, are the vector representations
-nns_labels <- labelProp(x = anes2016_glove, seeds = seeds, method = "nns", N = 10, as_list = TRUE)
+nns_labels <- labelProp(x = anes2016_glove, seeds = seeds, method = "nns")
 
 # check output for economy
-rw_labels[["economy"]]
-nns_labels[["economy"]]
+rw_labels[["economy"]] %>% arrange(-score) %>% head()
+nns_labels[["economy"]] %>% arrange(-score) %>% head()
 
 # check output for immigration
-rw_labels[["immigration"]]
-nns_labels[["immigration"]]
+rw_labels[["immigration"]] %>% arrange(-score) %>% head()
+nns_labels[["immigration"]] %>% arrange(-score) %>% head()
 ```
 
 # Document scoring
@@ -102,15 +102,15 @@ node_vs <- rbind(doc_vs, word_vs)
 transition_matrix <- build_transition_matrix(x = node_vs, threads = 6L)
 
 # label propagate
-rw_labels <- labelProp(x = transition_matrix, seeds = seeds, method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+rw_labels <- labelProp(x = transition_matrix, seeds = seeds, method = "rw", beta = 0.5)
 
-# output
-rw_labels[["economy"]]
-rw_labels[["immigration"]]
+# output (filtering to just document nodes)
+economy_docs <-rw_labels[["economy"]] %>% filter(grepl("text", node)) %>% arrange(-score) %>% slice(1:10)
+immigration_docs <- rw_labels[["immigration"]] %>% filter(grepl("text", node)) %>% arrange(-score) %>% slice(1:10)
 
-# combine with texts
-tokens_subset(anes_toks, docid(anes_toks) %in% rw_labels[["economy"]]$node) %>% sapply(function(x) paste(x, collapse = " "))
-tokens_subset(anes_toks, docid(anes_toks) %in% rw_labels[["immigration"]]$node) %>% sapply(function(x) paste(x, collapse = " "))
+# combine with texts%>% 
+tokens_subset(anes_toks, docid(anes_toks) %in% economy_docs$node) %>% sapply(function(x) paste(x, collapse = " "))
+tokens_subset(anes_toks, docid(anes_toks) %in% immigration_docs$node) %>% sapply(function(x) paste(x, collapse = " "))
 ```
 
 ## Labeling documents using seed words
@@ -126,13 +126,13 @@ doc_seeds <- list("immigration" = c("text4771", "text4024"), "economy" = c("text
 transition_matrix <- build_transition_matrix(x = doc_vs, threads = 6L)
 
 # label propagate
-rw_labels <- labelProp(x = transition_matrix, seeds = doc_seeds, method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+rw_labels <- labelProp(x = transition_matrix, seeds = doc_seeds, method = "rw", beta = 0.5)
 
-# output
-rw_labels[["economy"]]
-rw_labels[["immigration"]]
+# output (filtering to just document nodes)
+economy_docs <-rw_labels[["economy"]] %>% filter(grepl("text", node)) %>% arrange(-score) %>% slice(1:10)
+immigration_docs <- rw_labels[["immigration"]] %>% filter(grepl("text", node)) %>% arrange(-score) %>% slice(1:10)
 
-# merge with texts
-tokens_subset(anes_toks, docid(anes_toks) %in% rw_labels[["economy"]]$node) %>% sapply(function(x) paste(x, collapse = " "))
-tokens_subset(anes_toks, docid(anes_toks) %in% rw_labels[["immigration"]]$node) %>% sapply(function(x) paste(x, collapse = " "))
+# combine with texts%>% 
+tokens_subset(anes_toks, docid(anes_toks) %in% economy_docs$node) %>% sapply(function(x) paste(x, collapse = " "))
+tokens_subset(anes_toks, docid(anes_toks) %in% immigration_docs$node) %>% sapply(function(x) paste(x, collapse = " "))
 ```

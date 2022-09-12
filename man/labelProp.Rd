@@ -7,14 +7,14 @@
 labelProp(
   x,
   seeds,
-  N = 10,
   method = "rw",
   beta = 0.5,
   bootstrap = FALSE,
   num_bootstraps = 100,
   prop_seeds = 0.5,
+  permute = FALSE,
+  num_permutations = 100,
   softmax = FALSE,
-  as_list = FALSE,
   verbose = TRUE
 )
 }
@@ -25,8 +25,6 @@ if \code{method = nns}, then \code{x} is a matrix of vector representations.}
 \item{seeds}{(list) a list of character vectors defining the classes of interest.
 If named, then \code{names(seeds)} will be used to define classes,
 otherwise classes will be labeled \code{class1}, \code{class2} etc.}
-
-\item{N}{(integer) number of (top N) scored nodes to return}
 
 \item{method}{(character) either \code{nns} or \code{rw}. If \code{nns}, then values will be computed
 using cosine similarity, if not values are computed using spreading activation.}
@@ -41,12 +39,13 @@ of seeds and re-run algorithm. Required to get std. errors.}
 
 \item{prop_seeds}{(numeric) proportion of seeds to sample when bootstrapping.}
 
+\item{permute}{(logical) if TRUE, compute empirical p-values using permutation test}
+
+\item{num_permutations}{(numeric) number of permutations to use.}
+
 \item{softmax}{(logical) if TRUE, the exponential of a node's score for a given class
 is normalized by the sum of the exponential of scores across all classes.
 Option is only available when two or more classes are specified.}
-
-\item{as_list}{(logical) if FALSE all results are combined into a single data.frame
-If TRUE, a list of data.frames is returned with one data.frame per class.}
 
 \item{verbose}{(logical) if TRUE show progress bar.}
 }
@@ -78,12 +77,11 @@ seeds = list("immigration" = c("immigration", "immigrants", "immigrant"),
 
 # propagate label using rw
 rw_labels <- labelProp(x = transition_matrix, seeds = seeds,
-method = "rw", N = 10, beta = 0.5, as_list = TRUE)
+method = "rw", beta = 0.5)
 
 # propagate label using nns,
 # notice the main input, x, are the vector representations
-nns_labels <- labelProp(x = anes2016_glove, seeds = seeds,
-method = "nns", N = 10, as_list = TRUE)
+nns_labels <- labelProp(x = anes2016_glove, seeds = seeds, method = "nns")
 
 # check output for economy
 rw_labels[["economy"]]

@@ -4,4 +4,4 @@ export(build_transition_matrix)
 export(labelProp)
 
 importFrom(dplyr, "%>%")
-importFrom("stats", "filter", "sd")
+importFrom("stats", "filter", "sd", "setNames")
